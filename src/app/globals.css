@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-romantic-pink: #f43f5e;
+  --color-romantic-rose: #fb7185;
+  --color-romantic-gold: #f59e0b;
+}
+
+:root {
+  --font-serif-love: "Playfair Display", Georgia, serif;
+}
+
+/* Custom Romantic Animations */
+@keyframes flame-flicker {
+  0%, 100% {
+    transform: scale(1) rotate(-1deg);
+    opacity: 0.95;
+    filter: drop-shadow(0 0 10px #fbbf24) drop-shadow(0 0 20px #f97316);
+  }
+  25% {
+    transform: scale(1.08, 0.92) rotate(2deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 14px #fbbf24) drop-shadow(0 0 25px #f97316);
+  }
+  50% {
+    transform: scale(0.94, 1.06) rotate(-2deg);
+    opacity: 0.9;
+  }
+  75% {
+    transform: scale(1.04, 0.98) rotate(1deg);
+    opacity: 0.98;
+  }
+}
+
+@keyframes float-heart {
+  0% {
+    transform: translateY(0) scale(0.8) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-240px) scale(1.2) rotate(20deg);
+    opacity: 0;
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(244, 63, 94, 0.4), 0 0 30px rgba(251, 113, 133, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(244, 63, 94, 0.7), 0 0 45px rgba(251, 113, 133, 0.4);
+  }
+}
+
+.animate-flame {
+  animation: flame-flicker 1.2s infinite ease-in-out;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 14s linear infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2.5s infinite ease-in-out;
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-panel-dark {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.romantic-gradient-rose {
+  background: radial-gradient(circle at 50% 20%, #ffe4e6 0%, #fecdd3 35%, #fda4af 70%, #fb7185 100%);
+}
+
+.romantic-gradient-night {
+  background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #0f172a 60%, #020617 100%);
+}
+
+.romantic-gradient-luxury {
+  background: radial-gradient(circle at 50% 20%, #2e1065 0%, #170d2b 60%, #090314 100%);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(244, 63, 94, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 63, 94, 0.6);
+}
