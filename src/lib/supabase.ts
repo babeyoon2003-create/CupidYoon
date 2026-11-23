@@ -15,7 +15,7 @@ export const supabase = isSupabaseConfigured
   : null;
 
 // Built-in Demo Gifts for initial preview
-const INITIAL_DEMO_GIFTS: Gift[] = [
+export const INITIAL_DEMO_GIFTS: Gift[] = [
   {
     id: "demo-koko-2026",
     slug: "koko",
@@ -81,8 +81,8 @@ const INITIAL_DEMO_GIFTS: Gift[] = [
   }
 ];
 
-// Helper to get local gifts
-function getLocalGifts(): Gift[] {
+// Helper to get local gifts safely
+export function getLocalGifts(): Gift[] {
   if (typeof window === "undefined") return INITIAL_DEMO_GIFTS;
   try {
     const raw = localStorage.getItem("cupidyoon_gifts");
@@ -90,13 +90,14 @@ function getLocalGifts(): Gift[] {
       localStorage.setItem("cupidyoon_gifts", JSON.stringify(INITIAL_DEMO_GIFTS));
       return INITIAL_DEMO_GIFTS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_DEMO_GIFTS;
   } catch {
     return INITIAL_DEMO_GIFTS;
   }
 }
 
-// Helper to set local gifts
+// Helper to set local gifts safely
 function saveLocalGifts(gifts: Gift[]) {
   if (typeof window === "undefined") return;
   try {
@@ -106,34 +107,63 @@ function saveLocalGifts(gifts: Gift[]) {
   }
 }
 
-// API functions for Gifts
+// API functions for Gifts with Strict Timeout
 export async function fetchGiftBySlug(slug: string): Promise<Gift | null> {
+  const normalizedSlug = slug.toLowerCase().trim();
+  const demoGift = INITIAL_DEMO_GIFTS.find(
+    (g) => g.slug.toLowerCase() === normalizedSlug
+  );
+
+  // If Supabase is configured, try fetching with 2s strict timeout
   if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase
-      .from("gifts")
-      .select("*")
-      .eq("slug", slug)
-      .single();
-    if (error || !data) {
-      console.warn("Supabase fetch failed, falling back to local store:", error);
-      const local = getLocalGifts().find((g) => g.slug.toLowerCase() === slug.toLowerCase());
-      return local || null;
+    try {
+      const fetchPromise = supabase
+        .from("gifts")
+        .select("*")
+        .eq("slug", normalizedSlug)
+        .single();
+
+      const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: new Error("Supabase timeout") }), 2000)
+      );
+
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+      if (result && !result.error && result.data) {
+        return result.data as Gift;
+      }
+    } catch (err) {
+      console.warn("Supabase fetch failed/timeout:", err);
     }
-    return data as Gift;
   }
 
-  // Fallback to local
-  const gift = getLocalGifts().find((g) => g.slug.toLowerCase() === slug.toLowerCase());
-  return gift || null;
+  // Fallback to local storage or built-in demo
+  try {
+    const local = getLocalGifts().find(
+      (g) => g.slug.toLowerCase() === normalizedSlug
+    );
+    if (local) return local;
+  } catch {}
+
+  return demoGift || null;
 }
 
 export async function fetchAllGifts(): Promise<Gift[]> {
   if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase
-      .from("gifts")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (!error && data) return data as Gift[];
+    try {
+      const fetchPromise = supabase
+        .from("gifts")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: new Error("Timeout") }), 2500)
+      );
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      if (!error && data && data.length > 0) return data as Gift[];
+    } catch (e) {
+      console.warn(e);
+    }
   }
   return getLocalGifts();
 }
@@ -151,10 +181,13 @@ export async function saveGift(gift: Gift): Promise<{ success: boolean; error?: 
 
   // If Supabase is connected, sync to Cloud
   if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from("gifts").upsert(gift, { onConflict: "slug" });
-    if (error) {
-      console.error("Supabase upsert error:", error);
-      return { success: true }; // Local still succeeded
+    try {
+      const { error } = await supabase.from("gifts").upsert(gift, { onConflict: "slug" });
+      if (error) {
+        console.error("Supabase upsert error:", error);
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -166,7 +199,9 @@ export async function deleteGiftById(id: string): Promise<boolean> {
   saveLocalGifts(local);
 
   if (isSupabaseConfigured && supabase) {
-    await supabase.from("gifts").delete().eq("id", id);
+    try {
+      await supabase.from("gifts").delete().eq("id", id);
+    } catch {}
   }
   return true;
 }

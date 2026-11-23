@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Gift } from "@/types/database";
-import { fetchGiftBySlug } from "@/lib/supabase";
+import { fetchGiftBySlug, INITIAL_DEMO_GIFTS } from "@/lib/supabase";
 import TeaserScreen from "@/components/gift/TeaserScreen";
 import FullGiftView from "@/components/gift/FullGiftView";
 import { Frown } from "lucide-react";
@@ -18,24 +18,65 @@ export default function GiftClientView({ slug }: GiftClientViewProps) {
   const [isUnlocked, setIsUnlocked] = useState(false);
 
   useEffect(() => {
-    if (!slug) return;
-    const loadGift = async () => {
-      setLoading(true);
-      const data = await fetchGiftBySlug(slug);
-      setGift(data);
-      // If teaser is disabled, automatically unlocked
-      if (data && !data.teaser_enabled) {
-        setIsUnlocked(true);
+    let active = true;
+
+    // Safety timeout: max 1.5 seconds loading so it NEVER gets stuck on mobile
+    const safetyTimer = setTimeout(() => {
+      if (active && loading) {
+        // If still loading, find demo or stop loading
+        const fallback = INITIAL_DEMO_GIFTS.find(
+          (g) => g.slug.toLowerCase() === slug.toLowerCase()
+        );
+        if (fallback) {
+          setGift(fallback);
+        }
+        setLoading(false);
       }
-      setLoading(false);
+    }, 1500);
+
+    const loadGift = async () => {
+      try {
+        const data = await fetchGiftBySlug(slug);
+        if (active) {
+          if (data) {
+            setGift(data);
+            if (!data.teaser_enabled) {
+              setIsUnlocked(true);
+            }
+          } else {
+            // Check if demo gift
+            const demo = INITIAL_DEMO_GIFTS.find(
+              (g) => g.slug.toLowerCase() === slug.toLowerCase()
+            );
+            if (demo) setGift(demo);
+          }
+        }
+      } catch (err) {
+        console.error("Gift load error:", err);
+        const demo = INITIAL_DEMO_GIFTS.find(
+          (g) => g.slug.toLowerCase() === slug.toLowerCase()
+        );
+        if (demo && active) setGift(demo);
+      } finally {
+        if (active) {
+          setLoading(false);
+          clearTimeout(safetyTimer);
+        }
+      }
     };
+
     loadGift();
+
+    return () => {
+      active = false;
+      clearTimeout(safetyTimer);
+    };
   }, [slug]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[#120a1f] to-[#250d2c] text-white">
-        <div className="w-14 h-14 rounded-full border-4 border-rose-500 border-t-transparent animate-spin mb-4" />
+        <div className="w-12 h-12 rounded-full border-4 border-rose-500 border-t-transparent animate-spin mb-4" />
         <p className="text-sm font-serif italic text-rose-200">
           အမှတ်တရ လက်ဆောင်လေးကို ဖွင့်လှစ်နေပါသည်... ✨
         </p>

@@ -25,8 +25,10 @@ export default function ScratchCard({
     if (!ctx) return;
 
     // Size canvas accurately
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    const width = canvas.offsetWidth || 340;
+    const height = canvas.offsetHeight || 176;
+    canvas.width = width;
+    canvas.height = height;
 
     // Draw shimmering silver/gold scratch surface
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
